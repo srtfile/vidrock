@@ -1,0 +1,48 @@
+name: Vidrock Resolve
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Vidrock embed URL (e.g. https://vidrock.ru/embed/movie/254)"
+        required: true
+        default: "https://vidrock.ru/embed/movie/254"
+      output_json:
+        description: "Output as JSON (true) or plain URLs (false)"
+        required: false
+        default: "false"
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests pycryptodome
+
+      - name: Resolve stream URLs
+        run: |
+          if [ "${{ inputs.output_json }}" = "true" ]; then
+            python extract_movies.py "${{ inputs.url }}" --json | tee results.json
+          else
+            python extract_movies.py "${{ inputs.url }}" | tee results.txt
+          fi
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: stream-urls
+          path: |
+            results.json
+            results.txt
+          if-no-files-found: ignore
+          retention-days: 1
